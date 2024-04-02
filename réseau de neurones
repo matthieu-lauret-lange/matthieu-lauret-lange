@@ -1,0 +1,114 @@
+#code faire sur google collab dans le cadre de mes cours de programmations. Ici on travaillait sur une modélisation sur des données concernant des étudiants et surtout leur notes pour prédire leur moyenne du 3e 
+trimestre avec les moyennes des deux premiers et d'autre données grace a un réseau de neuronne
+
+
+
+import pandas as pd
+
+donnees_etudiant = pd.read_csv('https://ressources.magicmakers.fr/wp-content/uploads/2022/09/student-mat.csv')
+donnees_manip = pd.read_csv('https://ressources.magicmakers.fr/wp-content/uploads/2022/09/student-mat.csv')
+
+print(donnees_manip["school"].unique)
+donnees_manip.loc[donnees_etudiant["school"] == "GP", ["school"]] = 0
+donnees_manip.loc[donnees_etudiant["school"] == "MS", ["school"]] = 1
+print(donnees_manip["school"].unique)
+
+import numpy as np
+
+from tensorflow.keras.utils import to_categorical
+
+from sklearn.model_selection import train_test_split
+
+#on commence pour gérer les sorties G3 = 3e trimestre des notes de l'élève
+Y = donnees_manip["G3"]
+
+#on utilise la fonction "to_categorical()" pour transformer les données en vecteur de probabilité
+
+Y = to_categorical(Y,21)
+
+#on va définir les entrées 
+
+X = donnees_manip[["school","G1","G2"]]
+
+#on convertit en tenseur avec la tenseur numpy np.asarray() et on va aussi convertir en nombre décimaux
+
+X = np.asarray(X).astype("float32")
+
+#on découpe (split) les données avec np.split()
+
+X_train, X_test, Y_train, Y_test = train_test_split(X,Y, test_size = 0.2, random_state = 1)
+
+#on va imprimer pour vérifier si tous est bon 
+
+print(X_train.shape)
+print(X_test.shape)
+print(Y_train.shape)
+print(Y_test.shape)
+
+from os import initgroups
+#on importe le modèle 
+
+from keras.models import Sequential
+
+#on importe les types de couches depuis la librairie keras et la sous lib "layers"
+
+from keras.layers import Dense
+
+modele = Sequential()
+
+#on va mettre une couche Dense de Neurones en entrée
+modele.add(Dense(16, input_shape = (3,),activation = "relu"))
+
+#on met une couche intermédiaire
+modele.add(Dense(32,activation = "relu"))
+
+#on met une couche Dense de sortie 
+modele.add(Dense(21,activation = "softmax"))
+
+#on fait un résumé du modèle 
+
+modele.summary()
+
+#on paramétrise  l'entrainement
+modele.compile(optimizer = "Adam", loss = "categorical_crossentropy", metrics = ["accuracy"])
+
+#on lance l'entrainement 
+modele.fit(X_train, Y_train, batch_size = 16, epochs = 50, validation_data = (X_test, Y_test))
+
+#on sauvegarde le modèle
+modele.save("resultat.h5")
+
+from matplotlib import pyplot as plt 
+
+from keras.models import load_model
+
+#On va maintenant faire un graphique
+import numpy as np
+
+modele = load_model("resultat.h5")
+
+X = X_test 
+
+Y = modele.predict(X)
+
+notes_predites = np.argmax(Y, axis = 1)
+
+notes_reelles = np.argmax(Y_test , axis = 1)
+
+plt.plot(notes_reelles,"b",notes_predites, 'r')
+
+
+plt.show()
+
+#on va rajouter des étiquettes au résultat et agrandir le plot(le graphique)
+
+plt.figure(dpi = 100,figsize=(10,5))
+plt.axes()
+plt.ylabel("Notes")
+
+plt.plot(notes_reelles,'b', notes_predites, 'r')
+
+plt.legend(["réelles","prédites"])
+
+plt.savefig("mlp-results.png")
+plt.show()
