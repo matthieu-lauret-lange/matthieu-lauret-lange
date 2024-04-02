@@ -1,0 +1,179 @@
+#le code suivant est un projet de code en python que j'ai fait pour la programmation d'un bot discord qui permet de jouer au jeu du pendu
+
+
+!pip install discord
+!pip install nest_asyncio
+!pip install unidecode
+
+#code du pendu 
+class JeuPendu:
+    def __init__(self):
+        self.mot_a_deviner = random.choice(mots).rstrip().upper()
+        self.mot_a_afficher = "-" * len(self.mot_a_deviner)
+        self.lettres_devinees = []
+        self.vies = 8
+        self.regles = "Trouve le mot caché"
+
+    def enlever_vie(self):
+        self.vies = self.vies - 1
+
+    def remplacer_lettre(self, lettre):
+        for i in range(len(self.mot_a_deviner)):
+            if self.mot_a_deviner[i] == lettre:
+                mot = list(self.mot_a_afficher)
+                mot[i] = lettre
+                self.mot_a_afficher = ''.join(mot)
+
+    def deviner_lettre(self, lettre):
+        if lettre in self.lettres_devinees:
+            return "Cette lettre a déjà été devinée !"
+        else:
+            self.lettres_devinees.append(lettre)
+            if lettre in self.mot_a_deviner:
+                self.remplacer_lettre(lettre)
+                return "Bonne lettre !"
+            else:
+                self.enlever_vie()
+                return "La lettre n'est pas dans le mot ! Il vous reste " + str(self.vies) + " vies."
+
+    def deviner_mot(self, mot):
+        if mot == self.mot_a_deviner:
+            self.mot_a_afficher = mot
+            return ""
+        else:
+            self.enlever_vie()
+            return "Désolé, ce n'est pas ce mot ! Il vous reste " + str(self.vies) + " vies."
+            
+    def action(self, message):
+        message = unidecode(message).upper()
+        if len(message) == 1:
+            return self.deviner_lettre(message)
+        else:
+            return self.deviner_mot(message) 
+
+    def etat_du_jeu(self):
+        return self.mot_a_afficher
+
+    def fin(self):
+        if not '-' in self.mot_a_afficher:
+            return "Bravo ! Le mot était effectivement : " + self.mot_a_deviner
+        elif self.vies == 0:
+            return "Perdu ! Vous n'avez plus de vies !\nLe mot était : " + self.mot_a_deviner
+        else:
+            return False
+
+#Code de la gestion d'une partie
+
+class Partie:
+  def __init__(self, channel):
+    self.pendu = None
+    self.channel = channel
+
+  def en_cours(self):
+    if self.pendu == None:
+      return False
+    else:
+      return True
+  
+  async def lancer(self):
+    #On enregistre un partie de pendu
+    self.pendu = JeuPendu()
+    await self.channel.send(self.pendu.regles)
+    await self.channel.send(self.pendu.etat_du_jeu())
+
+  async def envoi_message(self, message):
+    #Verifie que le message à été envoyer dans le meme meme channel que la partie
+    if not message.channel == self.channel:
+      return
+    #Verifie partie qui permet de savoir quoi afficher
+    reponse_du_jeu = self.pendu.action(message.content)
+    message_fin = self.pendu.fin()
+    if message_fin:
+      await self.channel.send(message_fin)
+      self.pendu = None
+    else:
+      await self.channel.send(reponse_du_jeu)
+      await self.channel.send(self.pendu.etat_du_jeu())
+
+#Code du bot Discord
+
+import discord
+import nest_asyncio
+from discord.ext import commands
+import random
+from unidecode import unidecode #Librairie pour le traitement de texte, utile pour le jeu du pendu
+import requests
+
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
+bot = commands.Bot(command_prefix = '!', intents = intents)
+
+# On récupère la liste de mots dans nos ressources
+url = "https://ressources.magicmakers.fr/wp-content/uploads/2023/01/mots.txt"
+response = requests.get(url)
+file = open('mots.txt', 'wb')
+file.write(response.content)
+file.close()
+
+# On récupère les mots sur cette liste
+mots = []
+with open('mots.txt') as mot:
+  mots = mot.readlines()
+
+
+@bot.event
+async def on_ready():
+    print("Ready!")
+
+parties = {}
+
+@bot.command()
+async def pendu(ctx):
+    global parties
+    channel = ctx.channel
+    if channel.id in parties:
+        if parties[channel.id].en_cours():
+            await channel.send("Il y a déjà une partie en cours sur ce salon !")
+            return
+    else:
+        parties[channel.id] = Partie(channel)
+    partie = parties[channel.id]
+    await partie.lancer()
+    
+@bot.event
+async def on_message(message):
+    if message.content.startswith("!"):
+        await bot.process_commands(message)
+        return
+    if message.author == bot.user:
+        return
+    id = message.channel.id
+    if id in parties:
+        partie = parties[id]
+        if partie.en_cours():
+            await partie.envoi_message(message)
+
+nest_asyncio.apply()
+bot.run("on met normalement ici le token du bot discord créé pour l'occasion')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
