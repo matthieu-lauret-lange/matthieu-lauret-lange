@@ -1,1 +1,47 @@
+!wget "https://ressources.magicmakers.fr/wp-content/uploads/2022/09/Glassdoor-Gender-Pay-Gap.csv"
+import pandas as pd
+# On ouvre le csv pour récupérer les données
+data = pd.read_csv('https://ressources.magicmakers.fr/wp-content/uploads/2022/09/student-mat.csv')
 
+# On affiche les noms de colones (c'est pratique pour savoir ce qu'on veut faire)
+print(data.columns)
+
+data.info()
+
+data.shape
+
+data_colonne = data['school'].unique()
+print('school : ',data_colonne)
+
+for i in range(len(data.columns)):
+  k = data.columns[i]
+  data_colon = data[k].unique()
+  print(k,":",data_colon)
+
+#fonction loc
+data.loc[data['school'] == 'GP', 'school'] = 0
+data.loc[data['school'] == 'MS', 'school'] = 1
+print(data['school'].unique())
+
+for i in range(len(data.columns)):
+  k = data.columns[i]
+  data.loc[data[data.columns[i]] == 'yes', data.columns[i]] = 1
+  data.loc[data[data.columns[i]] == 'no', data.columns[i]] = 0
+  data_colon = data[k].unique()
+  print(k,":",data_colon)
+
+data.groupby(['G1']).describe()
+data.groupby(['G2']).describe()
+data.groupby(['G3']).describe()
+
+data[["school",'G1','G2','G3']].groupby(["school"]).describe()
+
+data[["age",'G1','G2','G3']].groupby(["age"]).mean()
+
+data_sans_0 = data[["age",'G1','G2','G3']].query('G3 != 0').groupby(["age"]).mean()
+print(data_sans_0)
+#on enlève les 0 dans la table de données
+
+data[["age",'G1','G2','G3']].groupby(["age"]).describe()
+
+data['age'].value_counts()
