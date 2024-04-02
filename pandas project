@@ -1,3 +1,5 @@
+#ceci est le code de plusieurs défi quue nous avons fait autour de la bibliothèque Pandas en language python avec mes cours d'informatique sur le stockage, la manipulation et l'organisation de données
+
 !wget "https://ressources.magicmakers.fr/wp-content/uploads/2022/09/Glassdoor-Gender-Pay-Gap.csv"
 import pandas as pd
 # On ouvre le csv pour récupérer les données
